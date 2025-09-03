@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using McTools.Xrm.Connection;
 using Microsoft.Xrm.Sdk.Metadata;
@@ -12,6 +13,9 @@ namespace Rappen.XTB.LCG
 {
     public static class Extensions
     {
+        private const string DatePattern = @"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}";
+        private const string DateFormat = "yyyy-MM-dd HH:mm:ss";
+
         public static AttributeMetadata GetAttribute(this Dictionary<string, EntityMetadata> entities, string entity, string attribute)
         {
             if (entities == null
@@ -31,13 +35,20 @@ namespace Rappen.XTB.LCG
             var content = GetDataContent(data, settings, version);
             content = header + "\r\n\r\n" + content;
             content = content.BeautifyContent(settings.TemplateSettings.Template.IndentStr);
+            
             if (settings.SaveConfigurationInCommonFile)
             {
                 string selection = GetInlineConfiguration(settings);
                 content += "\r\n\r\n" + selection;
             }
+            
             try
             {
+                if (File.Exists(filename))
+                {
+                    content = PreserveOriginalDateIfContentUnchanged(filename, content);
+                }
+                
                 File.WriteAllText(filename, content);
                 return true;
             }
@@ -46,6 +57,63 @@ namespace Rappen.XTB.LCG
                 MessageBox.Show(e.Message, "Generate", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
+        }
+
+        private static string RemoveDateFromContent(string content)
+        {
+            var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            var result = new List<string>();
+            
+            foreach (var line in lines)
+            {
+                if (line.Contains(FileHeaderConstants.CreatedLabel) && line.Contains(":") && 
+                    Regex.IsMatch(line, DatePattern))
+                {
+                    continue;
+                }
+                result.Add(line);
+            }
+            
+            return string.Join("\r\n", result);
+        }
+
+        private static string ExtractDateFromContent(string content)
+        {
+            var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            
+            foreach (var line in lines)
+            {
+                if (line.Contains(FileHeaderConstants.CreatedLabel) && line.Contains(":"))
+                {
+                    
+                    var match = Regex.Match(line, DatePattern);
+                    if (match.Success)
+                    {
+                        return match.Value;
+                    }
+                }
+            }
+            
+            return null;
+        }
+
+        private static string PreserveOriginalDateIfContentUnchanged(string filename, string content)
+        {
+            var existingContent = File.ReadAllText(filename);
+            var contentWithoutDate = RemoveDateFromContent(content);
+            var existingContentWithoutDate = RemoveDateFromContent(existingContent);
+            
+            if (contentWithoutDate.Equals(existingContentWithoutDate, StringComparison.Ordinal))
+            {
+                var originalDate = ExtractDateFromContent(existingContent);
+
+                if (!string.IsNullOrEmpty(originalDate))
+                {                    
+                    content = content.Replace(DateTime.Now.ToString(DateFormat), originalDate);
+                }
+            }
+            
+            return content;
         }
 
         private static string GetInlineConfiguration(Settings settings)
@@ -63,27 +131,27 @@ namespace Rappen.XTB.LCG
         private static string GetFileHeader(string filename, string orgurl, Settings settings, string version)
         {
             var header = settings.TemplateSettings.Template.FileHeader
-                .Replace("{toolname}", settings.TemplateSettings.ToolName)
-                .Replace("{version}", version)
-                .Replace("{organization}", orgurl)
-                .Replace("{filename}", filename)
-                .Replace("{createdate}", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"))
-                .Replace("{legend}", settings.Legend ? settings.TemplateSettings.Template.Legend : string.Empty)
-                .Replace("{namespace}", settings.NameSpace)
-                .Replace("\r\n\r\n", "\r\n");
+                .Replace(FileHeaderConstants.ToolName, settings.TemplateSettings.ToolName)
+                .Replace(FileHeaderConstants.Version, version)
+                .Replace(FileHeaderConstants.Organization, orgurl)
+                .Replace(FileHeaderConstants.Filename, filename)
+                .Replace(FileHeaderConstants.CreateDate, DateTime.Now.ToString(DateFormat))
+                .Replace(FileHeaderConstants.Legend, settings.Legend ? settings.TemplateSettings.Template.Legend : string.Empty)
+                .Replace(FileHeaderConstants.Namespace, settings.NameSpace)
+                .Replace(FileHeaderConstants.LineEnding, FileHeaderConstants.SingleLineEnding);
             return header;
         }
 
         private static string GetDataContent(string data, Settings settings, string version)
         {
             return settings.TemplateSettings.Template.DataContainer
-                .Replace("{toolname}", settings.TemplateSettings.ToolName)
-                .Replace("{version}", version)
-                .Replace("{namespace}", settings.NameSpace)
-                .Replace("{theme}", string.IsNullOrEmpty(settings.Theme) ? settings.TemplateSettings.Template.DefaultTheme : settings.GetTheme())
-                .Replace("{legend}", settings.Legend ? settings.TemplateSettings.Template.Legend : string.Empty)
-                .Replace("{paddingsize}", settings.TableSize.ToString())
-                .Replace("{data}", data);
+                .Replace(FileHeaderConstants.ToolName, settings.TemplateSettings.ToolName)
+                .Replace(FileHeaderConstants.Version, version)
+                .Replace(FileHeaderConstants.Namespace, settings.NameSpace)
+                .Replace(FileHeaderConstants.Theme, string.IsNullOrEmpty(settings.Theme) ? settings.TemplateSettings.Template.DefaultTheme : settings.GetTheme())
+                .Replace(FileHeaderConstants.Legend, settings.Legend ? settings.TemplateSettings.Template.Legend : string.Empty)
+                .Replace(FileHeaderConstants.PaddingSize, settings.TableSize.ToString())
+                .Replace(FileHeaderConstants.Data, data);
         }
 
         private static string BeautifyContent(this string content, string indentstr)

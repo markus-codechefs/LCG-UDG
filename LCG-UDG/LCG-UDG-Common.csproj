@@ -267,6 +267,7 @@
     <Compile Include="Settings\GlobalSettings.cs" />
     <Compile Include="Settings\TemplateSettings.cs" />
     <Compile Include="Generation\Extensions.cs" />
+    <Compile Include="Constants\FileHeaderConstants.cs" />
     <Compile Include="Generation\IConstantFileWriter.cs" />
     <Compile Include="LCG.cs">
       <SubType>UserControl</SubType>
