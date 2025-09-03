@@ -61,11 +61,6 @@ namespace Rappen.XTB.LCG
         public const string CreatedLabel = "Created";
 
         /// <summary>
-        /// Label used for the "Filename" line in file headers
-        /// </summary>
-        public const string FilenameLabel = "Filename";
-
-        /// <summary>
         /// Double line ending used in file headers
         /// </summary>
         public const string LineEnding = "\r\n\r\n";

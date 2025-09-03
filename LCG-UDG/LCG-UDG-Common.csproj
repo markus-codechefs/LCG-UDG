@@ -245,6 +245,7 @@
     <Compile Include="About.designer.cs">
       <DependentUpon>About.cs</DependentUpon>
     </Compile>
+    <Compile Include="Constants\FileHeaderConstants.cs" />
     <Compile Include="EntityGroup.cs" />
     <Compile Include="Generation\FabienDehopreIdentifier.cs" />
     <Compile Include="Generation\UnicodeCharacterUtilities.cs" />
@@ -267,7 +268,6 @@
     <Compile Include="Settings\GlobalSettings.cs" />
     <Compile Include="Settings\TemplateSettings.cs" />
     <Compile Include="Generation\Extensions.cs" />
-    <Compile Include="Constants\FileHeaderConstants.cs" />
     <Compile Include="Generation\IConstantFileWriter.cs" />
     <Compile Include="LCG.cs">
       <SubType>UserControl</SubType>

@@ -134,6 +134,61 @@ namespace TestNamespace
         }
 
         [TestMethod]
+        public void WriteFile_WhenOnlyFilenameChanged_ShouldPreserveOriginalFilename()
+        {
+            // Arrange
+            var settings = new Settings();
+            var originalDate = "2023-01-15 10:30:45";
+            var originalFilename = "OriginalFile.cs";
+            var originalContent = $@"// *********************************************************************
+// Created by : Latebound Constants Generator 1.2023.5.901 for XrmToolBox
+// Tool Author: Jonas Rapp https://jonasr.app/
+// GitHub     : https://github.com/rappen/LCG-UDG/
+// Source Org : https://test.crm.dynamics.com
+// Filename   : {originalFilename}
+// Created    : {originalDate}
+// *********************************************************************
+
+namespace TestNamespace
+{{
+    public class TestClass
+    {{
+        public const string EntityName = ""test_entity"";
+    }}
+}}";
+
+            // Write original file
+            File.WriteAllText(_testFilePath, originalContent);
+
+            // Act - Write content with different filename
+            var newContent = $@"// *********************************************************************
+// Created by : Latebound Constants Generator 1.2023.5.901 for XrmToolBox
+// Tool Author: Jonas Rapp https://jonasr.app/
+// GitHub     : https://github.com/rappen/LCG-UDG/
+// Source Org : https://test.crm.dynamics.com
+// Filename   : ModifiedFile.cs
+// Created    : {DateTime.Now:yyyy-MM-dd HH:mm:ss}
+// *********************************************************************
+
+namespace TestNamespace
+{{
+    public class TestClass
+    {{
+        public const string EntityName = ""test_entity"";
+    }}
+}}";
+
+            var result = newContent.WriteFile(_testFilePath, "https://test.crm.dynamics.com", settings);
+
+            // Assert
+            Assert.IsTrue(result);
+            var finalContent = File.ReadAllText(_testFilePath);
+            Assert.IsTrue(finalContent.Contains(originalFilename), "Original filename should be preserved");
+            Assert.IsFalse(finalContent.Contains("ModifiedFile.cs"), "Modified filename should not be used");
+            Assert.IsTrue(finalContent.Contains(originalDate), "Original date should also be preserved");
+        }
+
+        [TestMethod]
         public void WriteFile_WhenFileDoesNotExist_ShouldUseCurrentDate()
         {
             // Arrange

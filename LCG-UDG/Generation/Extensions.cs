@@ -1,4 +1,6 @@
-﻿using System;
+﻿using McTools.Xrm.Connection;
+using Microsoft.Xrm.Sdk.Metadata;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,8 +8,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using McTools.Xrm.Connection;
-using Microsoft.Xrm.Sdk.Metadata;
 
 namespace Rappen.XTB.LCG
 {
@@ -18,7 +18,7 @@ namespace Rappen.XTB.LCG
 
         public static AttributeMetadata GetAttribute(this Dictionary<string, EntityMetadata> entities, string entity, string attribute)
         {
-            if (entities == null
+            if(entities == null
                 || !entities.TryGetValue(entity, out var metadata)
                 || metadata.Attributes == null)
             {
@@ -35,24 +35,24 @@ namespace Rappen.XTB.LCG
             var content = GetDataContent(data, settings, version);
             content = header + "\r\n\r\n" + content;
             content = content.BeautifyContent(settings.TemplateSettings.Template.IndentStr);
-            
-            if (settings.SaveConfigurationInCommonFile)
+
+            if(settings.SaveConfigurationInCommonFile)
             {
                 string selection = GetInlineConfiguration(settings);
                 content += "\r\n\r\n" + selection;
             }
-            
+
             try
             {
-                if (File.Exists(filename))
+                if(File.Exists(filename))
                 {
                     content = PreserveOriginalDateIfContentUnchanged(filename, content);
                 }
-                
+
                 File.WriteAllText(filename, content);
                 return true;
             }
-            catch (Exception e)
+            catch(Exception e)
             {
                 MessageBox.Show(e.Message, "Generate", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
@@ -63,37 +63,62 @@ namespace Rappen.XTB.LCG
         {
             var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             var result = new List<string>();
-            
-            foreach (var line in lines)
+
+            foreach(var line in lines)
             {
-                if (line.Contains(FileHeaderConstants.CreatedLabel) && line.Contains(":") && 
+                if(line.Contains(FileHeaderConstants.CreatedLabel) && line.Contains(":") &&
                     Regex.IsMatch(line, DatePattern))
+                {
+                    continue;
+                }
+
+                if(line.Contains(FileHeaderConstants.FilenameLabel) && line.Contains(":"))
                 {
                     continue;
                 }
                 result.Add(line);
             }
-            
+
             return string.Join("\r\n", result);
         }
 
         private static string ExtractDateFromContent(string content)
         {
             var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
-            
-            foreach (var line in lines)
+
+            foreach(var line in lines)
             {
-                if (line.Contains(FileHeaderConstants.CreatedLabel) && line.Contains(":"))
+                if(line.Contains(FileHeaderConstants.CreatedLabel) && line.Contains(":"))
                 {
-                    
+
                     var match = Regex.Match(line, DatePattern);
-                    if (match.Success)
+                    if(match.Success)
                     {
                         return match.Value;
                     }
                 }
             }
-            
+
+            return null;
+        }
+
+        private static string ExtractFilenameFromContent(string content)
+        {
+            var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+
+            foreach(var line in lines)
+            {
+                if(line.Contains(FileHeaderConstants.FilenameLabel) && line.Contains(":"))
+                {
+                    var colonIndex = line.IndexOf(':');
+                    if(colonIndex >= 0 && colonIndex < line.Length - 1)
+                    {
+                        var filenamePart = line.Substring(colonIndex + 1).Trim();
+                        return filenamePart;
+                    }
+                }
+            }
+
             return null;
         }
 
@@ -102,17 +127,23 @@ namespace Rappen.XTB.LCG
             var existingContent = File.ReadAllText(filename);
             var contentWithoutDate = RemoveDateFromContent(content);
             var existingContentWithoutDate = RemoveDateFromContent(existingContent);
-            
-            if (contentWithoutDate.Equals(existingContentWithoutDate, StringComparison.Ordinal))
+
+            if(contentWithoutDate.Equals(existingContentWithoutDate, StringComparison.Ordinal))
             {
                 var originalDate = ExtractDateFromContent(existingContent);
+                var originalFilename = ExtractFilenameFromContent(existingContent);
 
-                if (!string.IsNullOrEmpty(originalDate))
-                {                    
+                if(!string.IsNullOrEmpty(originalDate))
+                {
                     content = content.Replace(DateTime.Now.ToString(DateFormat), originalDate);
                 }
+
+                if(!string.IsNullOrEmpty(originalFilename))
+                {
+                    content = content.Replace(Path.GetFileName(filename), originalFilename);
+                }
             }
-            
+
             return content;
         }
 
@@ -160,17 +191,17 @@ namespace Rappen.XTB.LCG
             var lines = content.Split('\n').ToList();
             var lastline = string.Empty;
             var indent = 0;
-            foreach (var line in lines.Select(l => l.Trim()).Where(l => !string.IsNullOrEmpty(l)))
+            foreach(var line in lines.Select(l => l.Trim()).Where(l => !string.IsNullOrEmpty(l)))
             {
-                if (AddBlankLineBetween(lastline, line))
+                if(AddBlankLineBetween(lastline, line))
                 {
                     fixedcontent.AppendLine();
                 }
-                if (lastline.EndsWith("{"))
+                if(lastline.EndsWith("{"))
                 {
                     indent++;
                 }
-                if (line.Equals("}") && indent > 0)
+                if(line.Equals("}") && indent > 0)
                 {
                     indent--;
                 }
@@ -182,48 +213,48 @@ namespace Rappen.XTB.LCG
 
         private static bool AddBlankLineBetween(string lastline, string line)
         {
-            if (string.IsNullOrWhiteSpace(lastline) || lastline.Equals("{"))
+            if(string.IsNullOrWhiteSpace(lastline) || lastline.Equals("{"))
             {   // Never two empty lines after each other
                 return false;
             }
-            if (lastline.StartsWith("#region") || line.StartsWith("#region") || line.StartsWith("#endregion"))
+            if(lastline.StartsWith("#region") || line.StartsWith("#region") || line.StartsWith("#endregion"))
             {   // Empty lines around region statements
                 return true;
             }
-            if (lastline.StartsWith("using ") && !line.StartsWith("using "))
+            if(lastline.StartsWith("using ") && !line.StartsWith("using "))
             {   // Empty lines after usings
                 return true;
             }
-            if (line.StartsWith("namespace "))
+            if(line.StartsWith("namespace "))
             {   // Empty lines before namespace
                 return true;
             }
-            if (line.StartsWith("public enum"))
+            if(line.StartsWith("public enum"))
             {   // Never empty line before enums, we keep it compact
                 return false;
             }
-            if (lastline.Equals("}") && !line.Equals("}") && !string.IsNullOrWhiteSpace(line))
+            if(lastline.Equals("}") && !line.Equals("}") && !string.IsNullOrWhiteSpace(line))
             {   // Never empty line between end blocks
                 return true;
             }
             // Following rules are UML specific
-            if (line.StartsWith("@startuml") || lastline.StartsWith("@startuml") || line.StartsWith("@enduml"))
+            if(line.StartsWith("@startuml") || lastline.StartsWith("@startuml") || line.StartsWith("@enduml"))
             {
                 return true;
             }
-            if (line.StartsWith("title") || line.StartsWith("header") || line.StartsWith("footer "))
+            if(line.StartsWith("title") || line.StartsWith("header") || line.StartsWith("footer "))
             {
                 return true;
             }
-            if (line.StartsWith("skinparam") && !lastline.StartsWith("skinparam"))
+            if(line.StartsWith("skinparam") && !lastline.StartsWith("skinparam"))
             {
                 return true;
             }
-            if (line.StartsWith("entity "))
+            if(line.StartsWith("entity "))
             {
                 return true;
             }
-            if (line.StartsWith("Table "))
+            if(line.StartsWith("Table "))
             {
                 return true;
             }
@@ -236,20 +267,20 @@ namespace Rappen.XTB.LCG
             {
                 var last = text.Substring(0, i).ToLowerInvariant();
                 var next = text.Substring(i).ToLowerInvariant();
-                foreach (var word in OnlineSettings.Instance.CamelCaseWords.Where(word => last.EndsWith(word) || next.StartsWith(word)))
+                foreach(var word in OnlineSettings.Instance.CamelCaseWords.Where(word => last.EndsWith(word) || next.StartsWith(word)))
                 {   // Found a "word" in the string (for example "count"
                     var isunbreakable = false;
-                    foreach (var unbreak in OnlineSettings.Instance.CamelCaseWords)
+                    foreach(var unbreak in OnlineSettings.Instance.CamelCaseWords)
                     {   // Check that this word is not also part of a bigger word (for example "account"
                         var len = unbreak.Length;
                         var pos = text.ToLowerInvariant().IndexOf(unbreak);
-                        if (pos >= 0 && pos < i & pos + len > i)
+                        if(pos >= 0 && pos < i & pos + len > i)
                         {   // Found word appears to split a bigger valid word, prevent that
                             isunbreakable = true;
                             break;
                         }
                     }
-                    if (!isunbreakable)
+                    if(!isunbreakable)
                     {
                         return true;
                     }
@@ -259,22 +290,22 @@ namespace Rappen.XTB.LCG
 
             var result = string.Empty;
             var nextCapital = true;
-            for (var i = 0; i < name.Length; i++)
+            for(var i = 0; i < name.Length; i++)
             {
                 var chr = name[i];
-                if ((chr < 'a') &&
+                if((chr < 'a') &&
                     (chr < 'A' || chr > 'Z') &&
                     (chr < '0' || chr > '9'))
                 {   // Any non-letters/numbers are treated as word separators
                     nextCapital = true;
                 }
-                else if (chr > 'z')
+                else if(chr > 'z')
                 {   // Just ignore special character
                 }
                 else
                 {
                     nextCapital = nextCapital || WordBeginOrEnd(name, i);
-                    if (nextCapital)
+                    if(nextCapital)
                     {
                         result += chr.ToString().ToUpperInvariant();
                     }
@@ -290,9 +321,9 @@ namespace Rappen.XTB.LCG
 
         public static string GetNonDisplayName(this Settings settings, string name)
         {
-            if (settings.DoStripPrefix && !string.IsNullOrEmpty(settings.StripPrefix))
+            if(settings.DoStripPrefix && !string.IsNullOrEmpty(settings.StripPrefix))
             {
-                foreach (var prefix in settings.StripPrefix.Split(',')
+                foreach(var prefix in settings.StripPrefix.Split(',')
                                                .Select(p => p.Trim())
                                                .Where(p => !string.IsNullOrWhiteSpace(p)
                                                       && name.ToLowerInvariant().StartsWith(p)))
@@ -300,7 +331,7 @@ namespace Rappen.XTB.LCG
                     name = name.Substring(prefix.Length);
                 }
             }
-            if (settings.ConstantCamelCased)
+            if(settings.ConstantCamelCased)
             {
                 name = name.CamelCaseIt(settings);
             }
@@ -314,7 +345,7 @@ namespace Rappen.XTB.LCG
 
         public static string MessageDetails(this Exception ex, int level = 0)
         {
-            if (ex == null)
+            if(ex == null)
             {
                 return string.Empty;
             }
@@ -323,12 +354,12 @@ namespace Rappen.XTB.LCG
 
         public static void Move<T>(this List<T> list, T item, bool down)
         {   // From this tip: https://stackoverflow.com/a/450250/2866704
-            if (item == null)
+            if(item == null)
             {
                 return;
             }
             var oldIndex = list.IndexOf(item);
-            if (oldIndex == -1)
+            if(oldIndex == -1)
             {
                 return;
             }
@@ -356,7 +387,7 @@ namespace Rappen.XTB.LCG
             prompt.CancelButton = cancellation;
             prompt.AcceptButton = confirmation;
             string result = null;
-            if (prompt.ShowDialog() == DialogResult.OK)
+            if(prompt.ShowDialog() == DialogResult.OK)
             {
                 result = textBox.Text;
             }
