@@ -32,43 +32,18 @@ namespace LateboundConstantGeneratorTests
             var settings = new Settings();
             settings.NameSpace = "TestNamespace";
             var originalDate = "2023-01-15 10:30:45";
-            var originalContent = $@"// *********************************************************************
-// Created by : Latebound Constants Generator 1.2023.5.901 for XrmToolBox
-// Tool Author: Jonas Rapp https://jonasr.app/
-// GitHub     : https://github.com/rappen/LCG-UDG/
-// Source Org : https://test.crm.dynamics.com
-// Filename   : {Path.GetFileName(_testFilePath)}
-// Created    : {originalDate}
-// *********************************************************************
-
-namespace TestNamespace
-{{
-    public class TestClass
-    {{
-        public const string EntityName = ""test_entity"";
-    }}
-}}";
+            var originalContent = TestContentHelper.GetExpectedTestContent(Path.GetFileName(_testFilePath), originalDate);
 
             // Write original file
             File.WriteAllText(_testFilePath, originalContent);
 
             // Act - Write the same content again
-            var dataContent = @"public class TestClass
-{
-    public const string EntityName = ""test_entity"";
-}";
-
+            var dataContent = TestContentHelper.GetTestDataContent();
             var result = dataContent.WriteFile(_testFilePath, "https://test.crm.dynamics.com", settings);
 
             // Assert
             Assert.IsTrue(result);
             var finalContent = File.ReadAllText(_testFilePath);
-            
-            // Debug output
-            Console.WriteLine("=== FINAL CONTENT ===");
-            Console.WriteLine(finalContent);
-            Console.WriteLine("=== END FINAL CONTENT ===");
-            
             Assert.IsTrue(finalContent.Contains(originalDate), "Original date should be preserved");
             Assert.IsFalse(finalContent.Contains(DateTime.Now.ToString("yyyy-MM-dd")), "Current date should not be used");
         }
@@ -80,33 +55,13 @@ namespace TestNamespace
             var settings = new Settings();
             settings.NameSpace = "TestNamespace";
             var originalDate = "2023-01-15 10:30:45";
-            var originalContent = $@"// *********************************************************************
-// Created by : Latebound Constants Generator 1.2023.5.901 for XrmToolBox
-// Tool Author: Jonas Rapp https://jonasr.app/
-// GitHub     : https://github.com/rappen/LCG-UDG/
-// Source Org : https://test.crm.dynamics.com
-// Filename   : {Path.GetFileName(_testFilePath)}
-// Created    : {originalDate}
-// *********************************************************************
-
-namespace TestNamespace
-{{
-    public class TestClass
-    {{
-        public const string EntityName = ""test_entity"";
-    }}
-}}";
+            var originalContent = TestContentHelper.GetExpectedTestContent(Path.GetFileName(_testFilePath), originalDate);
 
             // Write original file
             File.WriteAllText(_testFilePath, originalContent);
 
             // Act - Write different content
-            var dataContent = @"public class TestClass
-{
-    public const string EntityName = ""modified_entity"";
-    public const string NewProperty = ""new_value"";
-}";
-
+            var dataContent = TestContentHelper.GetModifiedTestDataContent();
             var result = dataContent.WriteFile(_testFilePath, "https://test.crm.dynamics.com", settings);
 
             // Assert
@@ -125,32 +80,13 @@ namespace TestNamespace
             settings.NameSpace = "TestNamespace";
             var originalDate = "2023-01-15 10:30:45";
             var originalFilename = "OriginalFile.cs";
-            var originalContent = $@"// *********************************************************************
-// Created by : Latebound Constants Generator 1.2023.5.901 for XrmToolBox
-// Tool Author: Jonas Rapp https://jonasr.app/
-// GitHub     : https://github.com/rappen/LCG-UDG/
-// Source Org : https://test.crm.dynamics.com
-// Filename   : {originalFilename}
-// Created    : {originalDate}
-// *********************************************************************
-
-namespace TestNamespace
-{{
-    public class TestClass
-    {{
-        public const string EntityName = ""test_entity"";
-    }}
-}}";
+            var originalContent = TestContentHelper.GetExpectedTestContent(originalFilename, originalDate);
 
             // Write original file
             File.WriteAllText(_testFilePath, originalContent);
 
             // Act - Write content with different filename
-            var dataContent = @"public class TestClass
-{
-    public const string EntityName = ""test_entity"";
-}";
-
+            var dataContent = TestContentHelper.GetTestDataContent();
             var result = dataContent.WriteFile(_testFilePath, "https://test.crm.dynamics.com", settings);
 
             // Assert
@@ -167,10 +103,7 @@ namespace TestNamespace
             // Arrange
             var settings = new Settings();
             settings.NameSpace = "TestNamespace";
-            var dataContent = @"public class TestClass
-{
-    public const string EntityName = ""new_entity"";
-}";
+            var dataContent = TestContentHelper.GetNewTestDataContent();
 
             // Act - Write to new file
             var result = dataContent.WriteFile(_testFilePath, "https://test.crm.dynamics.com", settings);

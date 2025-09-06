@@ -148,13 +148,6 @@ namespace Rappen.XTB.LCG
             var contentWithoutDate = RemoveDateFromContent(content);
             var existingContentWithoutDate = RemoveDateFromContent(existingContent);
 
-            // Debug output
-            System.Diagnostics.Debug.WriteLine("=== EXISTING CONTENT WITHOUT DATE ===");
-            System.Diagnostics.Debug.WriteLine(existingContentWithoutDate);
-            System.Diagnostics.Debug.WriteLine("=== NEW CONTENT WITHOUT DATE ===");
-            System.Diagnostics.Debug.WriteLine(contentWithoutDate);
-            System.Diagnostics.Debug.WriteLine("=== CONTENT EQUAL: " + contentWithoutDate.Trim().Equals(existingContentWithoutDate.Trim(), StringComparison.Ordinal) + " ===");
-
             if(contentWithoutDate.Trim().Equals(existingContentWithoutDate.Trim(), StringComparison.Ordinal))
             {
                 var originalDate = ExtractDateFromContent(existingContent);
