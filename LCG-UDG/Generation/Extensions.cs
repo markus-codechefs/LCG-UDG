@@ -63,6 +63,7 @@ namespace Rappen.XTB.LCG
         {
             var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
             var result = new List<string>();
+            var skipConfiguration = false;
 
             foreach(var line in lines)
             {
@@ -76,6 +77,25 @@ namespace Rappen.XTB.LCG
                 {
                     continue;
                 }
+                
+                // Skip configuration section
+                if(line.Contains("LCG-configuration-BEGIN"))
+                {
+                    skipConfiguration = true;
+                    continue;
+                }
+                
+                if(line.Contains("LCG-configuration-END"))
+                {
+                    skipConfiguration = false;
+                    continue;
+                }
+                
+                if(skipConfiguration)
+                {
+                    continue;
+                }
+                
                 result.Add(line);
             }
 
@@ -128,7 +148,14 @@ namespace Rappen.XTB.LCG
             var contentWithoutDate = RemoveDateFromContent(content);
             var existingContentWithoutDate = RemoveDateFromContent(existingContent);
 
-            if(contentWithoutDate.Equals(existingContentWithoutDate, StringComparison.Ordinal))
+            // Debug output
+            System.Diagnostics.Debug.WriteLine("=== EXISTING CONTENT WITHOUT DATE ===");
+            System.Diagnostics.Debug.WriteLine(existingContentWithoutDate);
+            System.Diagnostics.Debug.WriteLine("=== NEW CONTENT WITHOUT DATE ===");
+            System.Diagnostics.Debug.WriteLine(contentWithoutDate);
+            System.Diagnostics.Debug.WriteLine("=== CONTENT EQUAL: " + contentWithoutDate.Trim().Equals(existingContentWithoutDate.Trim(), StringComparison.Ordinal) + " ===");
+
+            if(contentWithoutDate.Trim().Equals(existingContentWithoutDate.Trim(), StringComparison.Ordinal))
             {
                 var originalDate = ExtractDateFromContent(existingContent);
                 var originalFilename = ExtractFilenameFromContent(existingContent);
